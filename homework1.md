@@ -20,4 +20,4 @@ The second piece of information used is the fork block number, which makes trans
 
 # What checks are made on transactions for view functions?
 
-There are no checks in view functions, as they do not change state and can be called by anyone.
+The check that is performed is on visibility only, as it does not perform transactions.
