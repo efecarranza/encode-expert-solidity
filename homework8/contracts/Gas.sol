@@ -1,6 +1,21 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.0;
 
+/// Address has insufficient funds for this operation
+error InsufficientBalanceError();
+/// Name is too long. Max 8 characters allowed.
+error NameTooLong();
+///  Cannot send to the zero-address
+error ZeroAddressError();
+/// Tier allowed numbers: 1, 2 or 3
+error InvalidTierProvidedError();
+/// Invalid amount provided: must be greater than amount_
+error InvalidAmountProvidedError(uint256 amount_);
+/// Invalid ID provided, must be greater than 0
+error InvalidIDProvidedError();
+/// Only admin or owner can make this transaction
+error OnlyAdminOrOwnerError();
+
 contract GasContract {
     enum PaymentType {
         Unknown,
@@ -47,9 +62,7 @@ contract GasContract {
     mapping(address => ImportantStruct) public whiteListStruct;
 
     bool constant tradeFlag = true;
-    bool constant basicFlag = false;
     bool constant dividendFlag = true;
-    bool public isReady;
     bool wasLastOdd = true;
     address _owner = msg.sender;
 
@@ -66,15 +79,16 @@ contract GasContract {
 
     modifier onlyAdminOrOwner() {
         if (_owner != msg.sender || !checkForAdmin(msg.sender)) {
-            revert("Error: only admin or owner allowed");
+            revert OnlyAdminOrOwnerError();
         }
         _;
     }
 
     modifier checkIfWhiteListed() {
         uint256 usersTier = whitelist[msg.sender];
-        require(usersTier > 0, "Error: user is not whitelisted");
-        require(usersTier < 4, "Error: invalid tier");
+        if (usersTier < 1 || usersTier > 3) {
+            revert InvalidTierProvidedError();
+        }
         _;
     }
 
@@ -131,7 +145,9 @@ contract GasContract {
         view
         returns (Payment[] memory payments_)
     {
-        require(_user != address(0), "Error: invalid address");
+        if (_user == address(0)) {
+            revert ZeroAddressError();
+        }
         return payments[_user];
     }
 
@@ -140,8 +156,12 @@ contract GasContract {
         uint256 _amount,
         string calldata _name
     ) public returns (bool status_) {
-        require(balances[msg.sender] >= _amount, "Sender has insufficient Balance");
-        require(bytes(_name).length < 9, "Recipient name too long, max length of 8 characters");
+        if (balances[msg.sender] < _amount) {
+            revert InsufficientBalanceError();
+        }
+        if (bytes(_name).length > 8) {
+            revert NameTooLong();
+        }
         balances[msg.sender] -= _amount;
         balances[_recipient] += _amount;
         Payment memory payment = Payment(
@@ -170,9 +190,15 @@ contract GasContract {
         uint256 _amount,
         PaymentType _type
     ) public onlyAdminOrOwner {
-        require(_ID > 0, "ID must be greater than 0");
-        require(_amount > 0, "Amount must be greater than 0");
-        require(_user != address(0),"Administrator must have a valid non zero address");
+        if (_ID < 1) {
+            revert InvalidIDProvidedError();
+        }
+        if (_amount < 1) {
+            revert InvalidAmountProvidedError(0);
+        }
+        if (_user == address(0)) {
+            revert ZeroAddressError();
+        }
 
         for (uint256 i = 0; i < payments[_user].length; i++) {
             if (payments[_user][i].paymentID == _ID) {
@@ -195,7 +221,9 @@ contract GasContract {
         public
         onlyAdminOrOwner
     {
-        require(_tier > 0 && _tier < 4, "Tier level should be 1, 2 or 3");
+        if (_tier < 1 || _tier > 3) {
+            revert InvalidTierProvidedError();
+        }
         whitelist[_userAddrs] = _tier;
 
         if (wasLastOdd) {
@@ -213,17 +241,20 @@ contract GasContract {
         uint256 _amount,
         ImportantStruct memory _struct
     ) public checkIfWhiteListed {
-        require(balances[msg.sender] >= _amount, "Sender has insufficient Balance");
-        require(_amount > 3, "Amount to send must be bigger than 3");
-        balances[msg.sender] -= _amount;
-        balances[_recipient] += _amount;
-        balances[msg.sender] += whitelist[msg.sender];
-        balances[_recipient] -= whitelist[msg.sender];
+        if (balances[msg.sender] < _amount) {
+            revert InsufficientBalanceError();
+        }
+        if (amount < 4) {
+            revert InvalidAmountProvidedError(3);
+        }
+        balances[msg.sender] -= _amount - whitelist[msg.sender];
+        balances[_recipient] += _amount + whitelist[msg.sender];
 
-        ImportantStruct storage newImportantStruct;
-        newImportantStruct.valueA = _struct.valueA;
-        newImportantStruct.bigValue = _struct.bigValue;
-        newImportantStruct.valueB = _struct.valueB;
+        // ImportantStruct storage newImportantStruct;
+        // newImportantStruct.valueA = _struct.valueA;
+        // newImportantStruct.bigValue = _struct.bigValue;
+        // newImportantStruct.valueB = _struct.valueB;
+        // whiteListStruct[msg.sender] = newImportantStruct; // was this missed or can we delete the important struct stuff altogether?
         emit WhiteListTransfer(_recipient);
     }
 }
