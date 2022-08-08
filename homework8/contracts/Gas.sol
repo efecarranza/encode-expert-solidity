@@ -244,12 +244,14 @@ contract GasContract {
         if (balances[msg.sender] < _amount) {
             revert InsufficientBalanceError();
         }
-        if (amount < 4) {
+        if (_amount < 4) {
             revert InvalidAmountProvidedError(3);
         }
-        balances[msg.sender] -= _amount - whitelist[msg.sender];
+        balances[msg.sender] -= _amount;
         balances[_recipient] += _amount + whitelist[msg.sender];
-
+        balances[msg.sender] += whitelist[msg.sender];
+        balances[_recipient] -= whitelist[msg.sender];
+b
         // ImportantStruct storage newImportantStruct;
         // newImportantStruct.valueA = _struct.valueA;
         // newImportantStruct.bigValue = _struct.bigValue;
