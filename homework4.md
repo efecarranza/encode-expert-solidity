@@ -29,7 +29,7 @@ contract Example1{
 ```
 
 Since `block.timestamp` is being used for the division, a miner can manipulate block.timestamp or even wait for a timestamp that's going to be beneficial
-to them. This is not going to generate a truly random number and it can be gamed.
+to them. This is not going to generate a truly random number and it can be gamed. Use fixed solidity version.
 
 # What problems are there in this contract?
 
@@ -60,5 +60,5 @@ contract Course {
 }
 ```
 
-The structure used for students is an array, meaning, students could sign up mutilple times with the same address. This is a waste of time and there's no validation on it. A mapping would have been a better structure.
+The structure used for students is an array, meaning, students could sign up mutilple times with the same address. This is a waste of time and there's no validation on it. A mapping would have been a better structure. They could also make this array really big and then the loop will run out of gas.
 
